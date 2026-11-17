@@ -3,9 +3,14 @@ import { computed, onMounted, ref, watch } from 'vue'
 import SiteHeader from '@/components/SiteHeader.vue'
 import ProductCard from '@/components/ProductCard.vue'
 import CartItem from '@/components/CartItem.vue'
+import CheckoutModal from '@/components/CheckoutModal.vue'
 import { formatPrice, resolveAsset } from '@/utils/formatters'
 
 const CART_STORAGE_KEY = 'cosmosvit_cart_v1'
+const PROMO_CODES = {
+  COSMOS10: 0.1,
+  MARS20: 0.2,
+}
 
 function loadCartFromStorage() {
   try {
@@ -38,6 +43,12 @@ const sortBy = ref('default')
 
 const cart = ref(loadCartFromStorage())
 const cartSectionRef = ref(null)
+
+const promoInput = ref('')
+const activePromoCode = ref('')
+const promoFeedback = ref({ text: '', status: '' })
+
+const isCheckoutOpen = ref(false)
 
 watch(
   cart,
@@ -99,6 +110,16 @@ const cartSubtotal = computed(() =>
   cart.value.reduce((sum, item) => sum + item.price * item.quantity, 0),
 )
 
+const discountPercent = computed(() => PROMO_CODES[activePromoCode.value] || 0)
+
+const discountAmount = computed(() =>
+  Math.round(cartSubtotal.value * discountPercent.value),
+)
+
+const finalTotal = computed(() =>
+  Math.max(0, cartSubtotal.value - discountAmount.value),
+)
+
 function addToCart(product) {
   const existing = cart.value.find((item) => item.id === product.id)
   if (existing) {
@@ -138,8 +159,45 @@ function removeCartItem(id) {
   cart.value = cart.value.filter((item) => item.id !== id)
 }
 
+function resetPromo() {
+  promoInput.value = ''
+  activePromoCode.value = ''
+  promoFeedback.value = { text: '', status: '' }
+}
+
 function clearCart() {
   cart.value = []
+  resetPromo()
+}
+
+function applyPromoCode() {
+  const code = promoInput.value.trim().toUpperCase()
+  if (!code) {
+    promoFeedback.value = {
+      text: 'Введіть промокод (наприклад, COSMOS10).',
+      status: 'error',
+    }
+    return
+  }
+
+  if (PROMO_CODES[code]) {
+    activePromoCode.value = code
+    const percent = Math.round(PROMO_CODES[code] * 100)
+    promoFeedback.value = {
+      text: `Промокод ${code} активовано: знижка ${percent}%!`,
+      status: 'success',
+    }
+  } else {
+    activePromoCode.value = ''
+    promoFeedback.value = {
+      text: `Промокод «${code}» не знайдено. Спробуйте COSMOS10 або MARS20.`,
+      status: 'error',
+    }
+  }
+}
+
+function handleOrderCompleted() {
+  clearCart()
 }
 
 function scrollToCart() {
@@ -176,7 +234,7 @@ onMounted(loadCatalog)
 <template>
   <SiteHeader
     :total-count="cartTotalCount"
-    :total-price="cartSubtotal"
+    :total-price="finalTotal"
     @go-to-cart="scrollToCart"
   />
 
@@ -313,20 +371,76 @@ onMounted(loadCatalog)
             />
           </div>
 
+          <form class="promo-box" @submit.prevent="applyPromoCode">
+            <label for="promo-code-input" class="promo-label">Промокод на знижку</label>
+            <div class="promo-row">
+              <input
+                id="promo-code-input"
+                v-model="promoInput"
+                type="text"
+                class="promo-input"
+                placeholder="Наприклад: COSMOS10"
+              />
+              <button type="submit" class="btn btn-secondary">Застосувати</button>
+            </div>
+            <p class="promo-hint">
+              Діючі коди: <strong>COSMOS10</strong> (−10%), <strong>MARS20</strong> (−20%)
+            </p>
+            <div
+              v-if="promoFeedback.text"
+              class="promo-feedback"
+              :class="promoFeedback.status"
+            >
+              {{ promoFeedback.text }}
+              <button
+                v-if="activePromoCode"
+                type="button"
+                class="cart-clear-link"
+                style="margin-left: 8px; color: inherit;"
+                @click="resetPromo"
+              >
+                Скинути
+              </button>
+            </div>
+          </form>
+
           <div class="cart-summary">
             <div class="summary-row">
-              <span>Кількість товарів:</span>
-              <span>{{ cartTotalCount }} шт.</span>
+              <span>Товарів ({{ cartTotalCount }} шт.):</span>
+              <span>{{ formatPrice(cartSubtotal) }}</span>
+            </div>
+            <div v-if="discountAmount > 0" class="summary-row discount">
+              <span>Знижка ({{ activePromoCode }}):</span>
+              <span>−{{ formatPrice(discountAmount) }}</span>
             </div>
             <div class="summary-row total">
               <span>Разом до сплати:</span>
-              <span>{{ formatPrice(cartSubtotal) }}</span>
+              <span>{{ formatPrice(finalTotal) }}</span>
             </div>
           </div>
+
+          <button
+            type="button"
+            class="btn btn-block"
+            @click="isCheckoutOpen = true"
+          >
+            Оформити замовлення →
+          </button>
         </template>
       </aside>
     </div>
   </main>
+
+  <CheckoutModal
+    :is-open="isCheckoutOpen"
+    :total-count="cartTotalCount"
+    :subtotal="cartSubtotal"
+    :discount-amount="discountAmount"
+    :final-total="finalTotal"
+    :promo-code="activePromoCode"
+    @close="isCheckoutOpen = false"
+    @order-completed="handleOrderCompleted"
+  />
 
   <footer>
     <div class="container">

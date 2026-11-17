@@ -1,42 +1,59 @@
-# space-catalog-vue
+# 🚀 КосмоСвіт Store — Сайт-каталог з кошиком на Vue 3
 
-This template should help get you started developing with Vue 3 in Vite.
+Комп'ютерний практикум № 2 з веб-технологій: інтерактивний інтернет-магазин космічних постерів, 3D-моделей та сувенірів, побудований на **Vue 3 (Composition API)** та **Vite** з адаптивною версткою на основі КП № 1 («КосмоСвіт»).
 
-## Recommended IDE Setup
+![Скриншот застосунку КосмоСвіт Store](./docs/screenshot.png)
 
-[VS Code](https://code.visualstudio.com/) + [Vue (Official)](https://marketplace.visualstudio.com/items?itemName=Vue.volar) (and disable Vetur).
+## Реалізований функціонал
 
-## Recommended Browser Setup
+### Обов'язкові вимоги
+- **Каталог з 12 товарів** (`public/data/catalog.json`): назва, ціна, категорія, зображення, опис та характеристики завантажуються асинхронно через `fetch()`.
+- **Фільтрація та пошук через `computed`**: миттєвий пошук за назвою та фільтр за категоріями (`Усі`, `Постери`, `3D-моделі`, `Сувеніри`) без перезавантаження сторінки і ручної роботи з DOM.
+- **Реактивний кошик**: додавання товару, зміна кількості (`+` / `−`), видалення окремої позиції та очищення кошика; лічильник у шапці й сума оновлюються одразу.
+- **Компонентна архітектура (`props` + `emit`)**:
+  - `src/components/ProductCard.vue` — картка товару (отримує `product`, `cartQuantity` через `props`, передає подію `add-to-cart` через `emit`).
+  - `src/components/CartItem.vue` — позиція у кошику (отримує `item` через `props`, передає події `increment`, `decrement`, `remove` через `emit`).
+  - `src/components/SiteHeader.vue` — шапка сайту з реактивним індикатором кошика.
+  - `src/components/CheckoutModal.vue` — модальна форма оформлення замовлення з перевіркою полів.
+- **Збереження кошика в `localStorage` (`watch`)**: стан кошика зберігається автоматично при будь-якій зміні (`{ deep: true }`) і відновлюється після оновлення сторінки.
+- **Окремі повідомлення для порожніх станів**: окремі блоки для порожнього кошика («Кошик порожній») та для відсутності результатів пошуку/фільтра («Нічого не знайдено» + кнопка скидання фільтрів).
+- **Адаптивна верстка з КП № 1**: темна космічна тема, Flexbox і CSS Grid (`3` → `2` → `1` колонка), коректне відображення на смартфонах (`360px`+) без горизонтальної прокрутки.
 
-- Chromium-based browsers (Chrome, Edge, Brave, etc.):
-  - [Vue.js devtools](https://chromewebstore.google.com/detail/vuejs-devtools/nhdogjmejiglipccpnnnanhbledajbpd)
-  - [Turn on Custom Object Formatter in Chrome DevTools](http://bit.ly/object-formatters)
-- Firefox:
-  - [Vue.js devtools](https://addons.mozilla.org/en-US/firefox/addon/vue-js-devtools/)
-  - [Turn on Custom Object Formatter in Firefox DevTools](https://fxdx.dev/firefox-devtools-custom-object-formatters/)
+### Додаткові функції
+- **Сортування за ціною**: за замовчуванням, від дешевших до дорожчих, від дорожчих до дешевших.
+- **Система промокодів**:
+  - `COSMOS10` — знижка **10%**
+  - `MARS20` — знижка **20%**
+- **Оформлення замовлення**: модальне вікно з реактивною валідацією полів (ім'я, e-mail, телефон, спосіб та адреса доставки), повідомленням про підтвердження замовлення і очищенням кошика.
 
-## Type Support for `.vue` Imports in TS
+## Стек технологій
+- Vue 3 (`<script setup>`, `ref`, `reactive`, `computed`, `watch`, `onMounted`)
+- Vite 8
+- HTML5 / CSS3 (CSS Grid, Flexbox, CSS-змінні, `@media`)
+- Web Storage API (`localStorage`) & Fetch API
 
-TypeScript cannot handle type information for `.vue` imports by default, so we replace the `tsc` CLI with `vue-tsc` for type checking. In editors, we need [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar) to make the TypeScript language service aware of `.vue` types.
+## Запуск проєкту локально
 
-## Customize configuration
+1. Встановіть залежності:
+   ```bash
+   npm install
+   ```
+2. Запустіть сервер для розробки:
+   ```bash
+   npm run dev
+   ```
+3. Відкрийте у браузері адресу, яку покаже Vite (зазвичай `http://localhost:5173/`).
 
-See [Vite Configuration Reference](https://vite.dev/config/).
+### Інші команди
+- Збірка для продакшену (у теку `dist/`):
+  ```bash
+  npm run build
+  ```
+- Локальний перегляд продакшен-збірки:
+  ```bash
+  npm run preview
+  ```
 
-## Project Setup
-
-```sh
-npm install
-```
-
-### Compile and Hot-Reload for Development
-
-```sh
-npm run dev
-```
-
-### Type-Check, Compile and Minify for Production
-
-```sh
-npm run build
-```
+## Публікація (GitHub Pages / Netlify)
+- **GitHub Pages**: у репозиторії налаштовано workflow `.github/workflows/deploy.yml` (у `vite.config.js` вказано `base: './'`). Після завантаження коду на GitHub увімкніть **Settings → Pages → Source: GitHub Actions**.
+- **Netlify**: виконайте `npm run build` та завантажте теку `dist/` або підключіть Git-репозиторій зі збіркою `npm run build` (папка публікації: `dist`).
